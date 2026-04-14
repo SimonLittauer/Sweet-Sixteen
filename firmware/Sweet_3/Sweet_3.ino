@@ -58,6 +58,7 @@
 #endif
 
 #define I2C_FADER_VALUE_SHIFT (14 - I2C_FADER_RESOLUTION_BITS)
+#define I2C_FADER_BUCKET_MAX ((1 << I2C_FADER_RESOLUTION_BITS) - 1)
 
 #ifdef GESS // only necessary for GESS & midi note thing
 // panel led and function button pins:
@@ -115,6 +116,7 @@ int faderMax;
 // variables for i2c master mode
   // memory of the last unshifted value
   int lastValue[channelCount];
+  int lastI2CBucket[channelCount];
 
   // the i2c message buffer we are sending
   uint8_t messageBuffer[4];
@@ -237,6 +239,7 @@ void setup()
 
     if(i2cMaster) {
       lastValue[i] = 0;
+      lastI2CBucket[i] = -1;
     }
   }
 
@@ -595,11 +598,12 @@ void doMidiWrite()
       // we send out to all three supported i2c slave devices
       // keeps the firmware simple :)
 
-      const int i2cValue = notShiftyTemp >> I2C_FADER_VALUE_SHIFT;
+      const int i2cBucket = notShiftyTemp >> I2C_FADER_VALUE_SHIFT;
+      const int i2cValue = (i2cBucket * 16383 + (I2C_FADER_BUCKET_MAX / 2)) / I2C_FADER_BUCKET_MAX;
 
-      if (i2cValue != lastValue[q])
+      if (i2cBucket != lastI2CBucket[q])
       {
-        D(Serial.printf("i2c Master[%d]: %d\n", q, i2cValue));
+        D(Serial.printf("i2c Master[%d]: bucket=%d value=%d\n", q, i2cBucket, i2cValue));
 
         // for 4 output devices
         port = q % 4;
@@ -620,7 +624,7 @@ void doMidiWrite()
           sendi2c(0x20, device << 1, 0x06, port, i2cValue);
         }
 
-        lastValue[q] = i2cValue;
+        lastI2CBucket[q] = i2cBucket;
       }
     }
   }

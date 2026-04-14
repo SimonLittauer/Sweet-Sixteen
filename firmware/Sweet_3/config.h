@@ -52,7 +52,8 @@ byte _nChannel[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
 // I2C Address for Faderbank. 0x34 unless you ABSOLUTELY know what you are doing.
 #define I2C_ADDRESS 0x34
 
-// Bit resolution for outgoing I2C fader values in master mode (1-14)
+// I2C update step resolution in master mode (1-14).
+// Output value is still scaled to full 14-bit range (0..16383).
 #define I2C_FADER_RESOLUTION_BITS 8
 
 #ifdef DEV
