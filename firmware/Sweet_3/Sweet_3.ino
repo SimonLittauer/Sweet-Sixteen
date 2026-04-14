@@ -53,6 +53,12 @@
 #define TO_CV_SLEW_M 0x14
 #define TO_CV_OFF 0x15
 
+#if (I2C_FADER_RESOLUTION_BITS < 1) || (I2C_FADER_RESOLUTION_BITS > 14)
+#error "I2C_FADER_RESOLUTION_BITS must be between 1 and 14"
+#endif
+
+#define I2C_FADER_VALUE_SHIFT (14 - I2C_FADER_RESOLUTION_BITS)
+
 #ifdef GESS // only necessary for GESS & midi note thing
 // panel led and function button pins:
 const int  Led_ = 12;
@@ -589,9 +595,11 @@ void doMidiWrite()
       // we send out to all three supported i2c slave devices
       // keeps the firmware simple :)
 
-      if (notShiftyTemp != lastValue[q])
+      const int i2cValue = notShiftyTemp >> I2C_FADER_VALUE_SHIFT;
+
+      if (i2cValue != lastValue[q])
       {
-        D(Serial.printf("i2c Master[%d]: %d\n", q, notShiftyTemp));
+        D(Serial.printf("i2c Master[%d]: %d\n", q, i2cValue));
 
         // for 4 output devices
         port = q % 4;
@@ -599,20 +607,20 @@ void doMidiWrite()
 
         // TXo
         if(txoPresent) {
-          sendi2c(txoI2Caddress, device, 0x11, port, notShiftyTemp);
+          sendi2c(txoI2Caddress, device, 0x11, port, i2cValue);
         }
 
         // ER-301
         if(er301Present) {
-          sendi2c(er301I2Caddress, 0, TO_CV_SET, q, notShiftyTemp);
+          sendi2c(er301I2Caddress, 0, TO_CV_SET, q, i2cValue);
         }
 
         // ANSIBLE
         if(ansiblePresent) {
-          sendi2c(0x20, device << 1, 0x06, port, notShiftyTemp);
+          sendi2c(0x20, device << 1, 0x06, port, i2cValue);
         }
 
-        lastValue[q] = notShiftyTemp;
+        lastValue[q] = i2cValue;
       }
     }
   }
