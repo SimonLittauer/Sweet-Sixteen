@@ -52,6 +52,7 @@
 #define TO_CV_SLEW_S 0x13
 #define TO_CV_SLEW_M 0x14
 #define TO_CV_OFF 0x15
+#define I2C_CV_MAX_14BIT 16383
 
 #if (I2C_FADER_RESOLUTION_BITS < 1) || (I2C_FADER_RESOLUTION_BITS > 14)
 #error "I2C_FADER_RESOLUTION_BITS must be between 1 and 14"
@@ -171,6 +172,7 @@ void setup()
   {
     pinMode (G[i], INPUT_PULLUP);
     old_G[i] = HIGH;
+    _G[i] = HIGH;
     // default GESS settings does not read velocity and note from faders:
     nNote[i] = false;
     nVelocity[i] = false;
@@ -242,7 +244,6 @@ void setup()
       lastI2CBucket[i] = -1;
     }
   }
-
 // i2c using the default I2C pins on a Teensy 3.2
 if(i2cMaster) {
 
@@ -440,8 +441,6 @@ void loop()
           _G[i] = digitalReadFast(2);
           break;
       }
-      //_G[i] = digitalRead(G[i]);
-      //const int  G[8] = { 3, 0, 22, 20, 21, 23, 4, 2 };
     }
 #endif
   }
@@ -571,12 +570,8 @@ void doMidiWrite()
         }
         MIDI.sendNoteOn(_nNote[k], _nVelocity[k], _nChannel[k] ); // at the moment channels are 1 to 8 preassigned
         usbMIDI.sendNoteOn(_nNote[k], _nVelocity[k], _nChannel[k] );
-        // ER-301
-        if(er301Present) {
-           // https://github.com/odevices/er-301/blob/develop/mods/teletype/Dispatcher.cpp
-           // SC.TR 1-n α --> Set TR value to α (0/1)
-           // commandTRSet(delay, getPort(msg), getValue(msg));
-           sendi2c(er301I2Caddress, 0, TO_TR, q-8, 1);
+        if(i2cMaster && er301Present) {
+           sendi2c(er301I2Caddress, 0, TO_CV_SET, channelCount + k, I2C_CV_MAX_14BIT);
         }
         
       }
@@ -584,8 +579,8 @@ void doMidiWrite()
       {
         MIDI.sendNoteOff(_nNote[k], _nVelocity[k], _nChannel[k] );
         usbMIDI.sendNoteOff(_nNote[k], _nVelocity[k], _nChannel[k] );
-        if(er301Present) {
-           sendi2c(er301I2Caddress, 0, TO_TR, q-8, 0);
+        if(i2cMaster && er301Present) {
+           sendi2c(er301I2Caddress, 0, TO_CV_SET, channelCount + k, 0);
         }
         
       }
