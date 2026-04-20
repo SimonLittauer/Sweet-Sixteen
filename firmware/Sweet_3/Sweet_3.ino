@@ -54,12 +54,17 @@
 #define TO_CV_OFF 0x15
 #define I2C_CV_MAX_14BIT 16383
 
+#ifdef I2C_FADER_RESOLUTION_BITS
 #if (I2C_FADER_RESOLUTION_BITS < 1) || (I2C_FADER_RESOLUTION_BITS > 14)
 #error "I2C_FADER_RESOLUTION_BITS must be between 1 and 14"
 #endif
-
 #define I2C_FADER_VALUE_SHIFT (14 - I2C_FADER_RESOLUTION_BITS)
 #define I2C_FADER_BUCKET_MAX ((1 << I2C_FADER_RESOLUTION_BITS) - 1)
+#else
+// Resolution mod disabled: use full 14-bit precision (0..16383).
+#define I2C_FADER_VALUE_SHIFT 0
+#define I2C_FADER_BUCKET_MAX 16383
+#endif
 
 #ifdef GESS // only necessary for GESS & midi note thing
 // panel led and function button pins:
@@ -509,11 +514,12 @@ void doMidiWrite()
     // if ((shiftyTemp != lastMidiValue[q]) || forceMidiWrite)
     if (( shiftyTemp != lastMidiValue[q]) || ((( usbCCs[q] == 127 ) || ( trsCCs[q] == 127 )) && ( notShiftyTemp != lastValue[q] )) || forceMidiWrite )
     {
+      // optional: disable fader MIDI while keeping fader state updated.
+      #if FADER_MIDI_OUTPUT
       if(ledFlash && !midiDirty) {
         lastMidiActivityAt = millis();
         midiDirty = 1;
       }
-
       // only if GESS is not using the faders we send midiCC etc...
 #ifdef GESS
       if ((( q < 8 ) && (nNote[q] == false)) || (( q > 7 ) && (nVelocity[q - 8] == false)))
@@ -546,6 +552,7 @@ void doMidiWrite()
 #ifdef GESS
       }
 #endif
+      #endif
 
       // store the shifted value for future comparison
       lastMidiValue[q] = shiftyTemp;

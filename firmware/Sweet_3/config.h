@@ -39,6 +39,10 @@ const int DEVICE_ID = 0x02; // 16n, do not change, needed by editor
 // allow the Tsesseract Modular GESS & midi note implementation:
 #define GESS 1
 
+// set to 0 to disable MIDI output from faders (CC/PB).
+// GESS gate notes are not affected by this.
+#define FADER_MIDI_OUTPUT 0
+
 #ifdef GESS
 // default GESS settings (midi note, velocity and channel):
 byte _nNote[8] = { 30, 40, 50, 60, 70, 80, 90, 100 };
@@ -47,14 +51,15 @@ byte _nChannel[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
 #endif
 
 // uncomment this to allow PITCHBEND for controller 127
-#define PITCHBEND 1
+// #define PITCHBEND 1
 
 // I2C Address for Faderbank. 0x34 unless you ABSOLUTELY know what you are doing.
 #define I2C_ADDRESS 0x34
 
-// I2C update step resolution in master mode (1-14).
+// Optional "resolution mod" for I2C master mode (1-14).
+// Uncomment to quantize fader updates to fixed steps.
 // Output value is still scaled to full 14-bit range (0..16383).
-#define I2C_FADER_RESOLUTION_BITS 8
+// #define I2C_FADER_RESOLUTION_BITS 8
 
 #ifdef DEV
 
